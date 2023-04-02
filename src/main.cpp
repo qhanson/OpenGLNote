@@ -1,17 +1,12 @@
 
 
-#include <glm/glm.hpp>
-
-#include "imgui.h"
-#include "imgui_impl_glfw.h"
-#include "imgui_impl_opengl3.h"
-#include "GLFW/glfw3.h"
+#include "ToyOpenGL.hpp"
 #include <iostream>
-
 
 int main(int argc, char const *argv[])
 {
-    /* code */
-    std::cout<<"Hello OpenGL"<<std::endl;
-    return 0;
+    ToyOpenGLApp toy = ToyOpenGLApp(
+        fs::path{std::string{argv[0]}}, 1280, 720, "", "", "");
+    int returnCode = toy.run();
+    return returnCode;
 }
