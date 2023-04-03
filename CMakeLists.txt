@@ -21,6 +21,7 @@ set(IMGUI_DIR imgui-1.89.4)
 set(GLFW_DIR glfw-3.3.8)
 set(GLAD_DIR glad)
 set(GLM_DIR glm-master-efec5db)
+set(STB_DIR stb-master)
 
 option(GLFW_BUILD_DOCS OFF)
 option(GLFW_BUILD_TESTS OFF)
@@ -117,6 +118,7 @@ target_include_directories(
     third-party/${GLAD_DIR}/include
     third-party/${IMGUI_DIR}
     third-party/${IMGUI_DIR}/backends
+    third-party/${STB_DIR}
     lib/include
 )
 
@@ -136,6 +138,8 @@ target_link_libraries(
     ${APP}
     ${LIBRARIES}
 )
+
+
 
 install(
     TARGETS ${APP}

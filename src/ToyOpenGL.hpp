@@ -35,4 +35,5 @@ private:
     static void framebuffer_size_callback(GLFWwindow *window, int width, int height);
 
     GLuint createTriangleVao();
+    std::vector<std::pair<std::string, int>> createTextures();
 };

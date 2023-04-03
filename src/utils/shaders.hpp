@@ -70,6 +70,7 @@ inline std::string loadShaderSource(const fs::path &filepath)
 
     std::stringstream buffer;
     buffer << input.rdbuf();
+    input.close();
     return buffer.str();
 }
 
@@ -212,7 +213,7 @@ template <typename VSrc, typename GSrc, typename FSrc>
 GLProgram buildProgram(VSrc &&vsrc, GSrc &&gsrc, FSrc &&fsrc)
 {
     GLShader vs = compileShader(GL_VERTEX_SHADER, std::forward<VSrc>(vsrc));
-    GLShader gs = compileShader(GL_GEOMETRY_SHADER, std::foward<GSrc>(gsrc));
+    GLShader gs = compileShader(GL_GEOMETRY_SHADER, std::forward<GSrc>(gsrc));
     GLShader fs = compileShader(GL_FRAGMENT_SHADER, std::forward<FSrc>(fsrc));
     return buildProgram({std::move(vs), std::move(gs), std::move(fs)});
 }
@@ -220,7 +221,7 @@ GLProgram buildProgram(VSrc &&vsrc, GSrc &&gsrc, FSrc &&fsrc)
 template <typename CSrc>
 GLProgram buildComputeProgram(CSrc &&csrc)
 {
-    GLShader cs = compileShader(GL_COMPUTE_SHADER, std::foward<CSrc>(csrc));
+    GLShader cs = compileShader(GL_COMPUTE_SHADER, std::forward<CSrc>(csrc));
     return buildProgram({std::move(cs)});
 }
 
