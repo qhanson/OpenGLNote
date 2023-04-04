@@ -17,3 +17,7 @@ Shader program, compile, attach, link, use.
 ## Texture
 2D image texture, uniform sample2D, max 16 textures available for one fragment shader.
 Mipmap is best used for small fragments with large solution textures. 
+
+## Transformation
+
+The order of the transformation matters, T*R*S is a general order. We can read the matrix from right to left, which is the default executation order. Rotation matrix rotates around the point (0, 0, 0), given the rotation axis.

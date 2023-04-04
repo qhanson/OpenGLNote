@@ -2,6 +2,9 @@
 #include "utils/shaders.hpp"
 #define STB_IMAGE_IMPLEMENTATION
 #include <stb_image.h>
+#include <glm/glm.hpp>
+#include <glm/gtc/matrix_transform.hpp>
+#include <glm/gtc/type_ptr.hpp>
 
 ToyOpenGLApp::ToyOpenGLApp(const fs::path &appPath, uint32_t width,
                            uint32_t height, const std::string &vertexShader,
@@ -36,16 +39,27 @@ int ToyOpenGLApp::run()
 
     std::vector<std::pair<std::string, int>> textureNameId = createTextures();
     float mixValue = .5;
+
     while (!m_GLFWHandle.shouldClose())
     {
+        glm::mat4 trans(1.f);
+        trans = glm::rotate(trans, (float)glfwGetTime(), glm::vec3(0.0f, 0.0f, 1.0f));
+        trans = glm::translate(trans, glm::vec3(0.6f, -0.6f, 0.0f));
 
         // render
+        glClearColor(0.5f, 0.5f, 0.5f, 0.f);
+        glClear(GL_COLOR_BUFFER_BIT);
         program.use();
+        int index = 0;
         for (auto tex : textureNameId)
         {
-            glUniform1i(program.getUniformLocation(tex.first.c_str()), tex.second);
+            glActiveTexture(GL_TEXTURE0 + index);
+            glBindTexture(GL_TEXTURE_2D, tex.second);
+            glUniform1i(program.getUniformLocation(tex.first.c_str()), index++);
         }
         glUniform1f(program.getUniformLocation("mixParam"), mixValue);
+        glUniformMatrix4fv(program.getUniformLocation("transform"), 1, GL_FALSE,
+                           glm::value_ptr(trans));
         glBindVertexArray(vao);
         // glDrawArrays(GL_TRIANGLES, 0, 3);
         glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
@@ -90,10 +104,10 @@ GLuint ToyOpenGLApp::createTriangleVao()
     glBindBuffer(GL_ARRAY_BUFFER, vbo);
 
     float vertices[] = {
-        1.0f, 1.0f, 0.f, 1.0f, 0.0f, 0.0f, 1.0f, 1.0f,   // top right
-        1.0f, -1.0f, 0.f, 0.0f, 1.0f, 0.0f, 1.0f, 0.0f,  // bottom right
-        -1.0f, -1.0f, 0.f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f, // bottom left
-        -1.0f, 1.0f, 0.f, 1.0f, 1.0f, 0.0f, 0.0f, 1.0f   // top left
+        1.0f * 0.5f, 1.0f * 0.5f, 0.f, 1.0f, 0.0f, 0.0f, 1.0f, 1.0f,   // top right
+        1.0f * 0.5f, -1.0f * 0.5f, 0.f, 0.0f, 1.0f, 0.0f, 1.0f, 0.0f,  // bottom right
+        -1.0f * 0.5f, -1.0f * 0.5f, 0.f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f, // bottom left
+        -1.0f * 0.5f, 1.0f * 0.5f, 0.f, 1.0f, 1.0f, 0.0f, 0.0f, 1.0f   // top left
     };
 
     unsigned int indices[] = {
@@ -143,7 +157,8 @@ std::vector<std::pair<std::string, int>> ToyOpenGLApp::createTextures()
         glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGB,
                      GL_UNSIGNED_BYTE, data);
         glGenerateMipmap(GL_TEXTURE_2D);
-        textureNameId.push_back(std::make_pair("texture1", 0));
+        textureNameId.push_back(std::make_pair("texture1", texture));
+        glBindTexture(GL_TEXTURE_2D, 0);
     }
 
     stbi_image_free(data);
@@ -162,7 +177,8 @@ std::vector<std::pair<std::string, int>> ToyOpenGLApp::createTextures()
         glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA,
                      GL_UNSIGNED_BYTE, data2);
         glGenerateMipmap(GL_TEXTURE_2D);
-        textureNameId.push_back(std::make_pair("texture2", 1));
+        textureNameId.push_back(std::make_pair("texture2", texture));
+        glBindTexture(GL_TEXTURE_2D, 0);
     }
 
     stbi_image_free(data2);
