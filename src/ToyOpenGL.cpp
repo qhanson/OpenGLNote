@@ -25,9 +25,19 @@ ToyOpenGLApp::ToyOpenGLApp(const fs::path &appPath, uint32_t width,
     {
         m_FragmentShader = fragmentShader;
     }
+    lastX = width / 2.0f;
+    lastY = height / 2.0f;
+    firstMouse = true;
+    lastFrame = 0.f;
+    deltaTime = 0.f;
+    camera = Camera(glm::vec3(0.0f, 0.0f, 3.0f));
     glfwSetWindowUserPointer(m_GLFWHandle.window(), this);
     glfwSetKeyCallback(m_GLFWHandle.window(), keycallback);
     glfwSetFramebufferSizeCallback(m_GLFWHandle.window(), framebuffer_size_callback);
+    glfwSetCursorPosCallback(m_GLFWHandle.window(), mouse_callback);
+    glfwSetScrollCallback(m_GLFWHandle.window(), scroll_callback);
+    glfwSetInputMode(m_GLFWHandle.window(), GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+
     printGLVersion();
 }
 
@@ -56,20 +66,31 @@ int ToyOpenGLApp::run()
 
     while (!m_GLFWHandle.shouldClose())
     {
-        glm::mat4 model(1.f), view(1.0f), projection(1.0f);
-        projection = glm::perspective(glm::radians(45.0f), 1280.f / 720.f, 0.0001f, 100.0f);
-        view = glm::translate(view, glm::vec3(0.0f, 0.0f, zTranslate));
 
+        float currentFrame = static_cast<float>(glfwGetTime());
+        deltaTime = currentFrame - lastFrame;
+        lastFrame = currentFrame;
+
+        processInput();
+
+        glm::mat4 model(1.f), view(1.0f), projection(1.0f);
+        projection = glm::perspective(glm::radians(camera.Zoom), 1280.f / 720.f, 0.0001f, 100.0f);
+        view = camera.GetViewMatrix();
         // render
         glClearColor(0.5f, 0.5f, 0.5f, 0.f);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
         program.use();
         glBindVertexArray(vao);
+
+        glUniformMatrix4fv(program.getUniformLocation("view"), 1, GL_FALSE,
+                           glm::value_ptr(view));
+        glUniformMatrix4fv(program.getUniformLocation("projection"), 1, GL_FALSE,
+                           glm::value_ptr(projection));
         for (int i = 0; i < 10; ++i)
         {
             model = glm::mat4(1.0f);
             model = glm::translate(model, cubePositions[i]);
-            model = glm::rotate(model, glm::radians(20.0f * i), glm::vec3(1.0f, 0.3f, 0.5f));
+            model = glm::rotate(model, glm::radians(20.0f * i), glm::vec3(.0f, .0f, 1.f));
             int index = 0;
             for (auto tex : textureNameId)
             {
@@ -80,10 +101,6 @@ int ToyOpenGLApp::run()
             glUniform1f(program.getUniformLocation("mixParam"), mixValue);
             glUniformMatrix4fv(program.getUniformLocation("model"), 1, GL_FALSE,
                                glm::value_ptr(model));
-            glUniformMatrix4fv(program.getUniformLocation("view"), 1, GL_FALSE,
-                               glm::value_ptr(view));
-            glUniformMatrix4fv(program.getUniformLocation("projection"), 1, GL_FALSE,
-                               glm::value_ptr(projection));
 
             glDrawArrays(GL_TRIANGLES, 0, 36);
         }
@@ -109,6 +126,7 @@ int ToyOpenGLApp::run()
 void ToyOpenGLApp::keycallback(
     GLFWwindow *window, int key, int scancode, int action, int mods)
 {
+    auto thisobj = static_cast<ToyOpenGLApp *>(glfwGetWindowUserPointer(window));
     if (key == GLFW_KEY_ESCAPE && action == GLFW_RELEASE)
     {
         glfwSetWindowShouldClose(window, 1);
@@ -118,6 +136,55 @@ void ToyOpenGLApp::keycallback(
 void ToyOpenGLApp::framebuffer_size_callback(GLFWwindow *window, int width, int height)
 {
     glViewport(0, 0, width, height);
+}
+
+void ToyOpenGLApp::mouse_callback(GLFWwindow *window, double xposIn, double yposIn)
+{
+    auto thisobj = static_cast<ToyOpenGLApp *>(glfwGetWindowUserPointer(window));
+    float xpos = static_cast<float>(xposIn);
+    float ypos = static_cast<float>(yposIn);
+    if (thisobj->firstMouse)
+    {
+        thisobj->firstMouse = false;
+        thisobj->lastX = xpos;
+        thisobj->lastY = ypos;
+    }
+
+    float xoffst = xpos - thisobj->lastX;
+    float yoffset = ypos - thisobj->lastY;
+
+    thisobj->lastX = xpos;
+    thisobj->lastY = ypos;
+    thisobj->camera.ProcessMouseMovement(xoffst, yoffset);
+}
+
+void ToyOpenGLApp::processInput()
+{
+    auto thisobj = static_cast<ToyOpenGLApp *>(glfwGetWindowUserPointer(m_GLFWHandle.window()));
+
+    if (glfwGetKey(m_GLFWHandle.window(), GLFW_KEY_W) == GLFW_PRESS)
+    {
+        thisobj->camera.ProcessKeyBoard(FORWARD, thisobj->deltaTime);
+    }
+
+    if (glfwGetKey(m_GLFWHandle.window(), GLFW_KEY_S) == GLFW_PRESS)
+    {
+        thisobj->camera.ProcessKeyBoard(BACKWARD, thisobj->deltaTime);
+    }
+    if (glfwGetKey(m_GLFWHandle.window(), GLFW_KEY_A) == GLFW_PRESS)
+    {
+        thisobj->camera.ProcessKeyBoard(LEFT, thisobj->deltaTime);
+    }
+    if (glfwGetKey(m_GLFWHandle.window(), GLFW_KEY_D) == GLFW_PRESS)
+    {
+        thisobj->camera.ProcessKeyBoard(RIGHT, thisobj->deltaTime);
+    }
+}
+
+void ToyOpenGLApp::scroll_callback(GLFWwindow *window, double xoffset, double yoffset)
+{
+    auto thisobj = static_cast<ToyOpenGLApp *>(glfwGetWindowUserPointer(window));
+    thisobj->camera.ProcessMouseScroll(static_cast<float>(yoffset));
 }
 
 GLuint ToyOpenGLApp::createTriangleVao()
