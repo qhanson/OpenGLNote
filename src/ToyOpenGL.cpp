@@ -5,7 +5,7 @@
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
-
+#include "utils/camera.hpp"
 ToyOpenGLApp::ToyOpenGLApp(const fs::path &appPath, uint32_t width,
                            uint32_t height, const std::string &vertexShader,
                            const std::string &fragmentShader, const fs::path &output)
@@ -34,9 +34,9 @@ ToyOpenGLApp::ToyOpenGLApp(const fs::path &appPath, uint32_t width,
     glfwSetWindowUserPointer(m_GLFWHandle.window(), this);
     glfwSetKeyCallback(m_GLFWHandle.window(), keycallback);
     glfwSetFramebufferSizeCallback(m_GLFWHandle.window(), framebuffer_size_callback);
-    glfwSetCursorPosCallback(m_GLFWHandle.window(), mouse_callback);
+    // glfwSetCursorPosCallback(m_GLFWHandle.window(), mouse_callback);
     glfwSetScrollCallback(m_GLFWHandle.window(), scroll_callback);
-    glfwSetInputMode(m_GLFWHandle.window(), GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+    // glfwSetInputMode(m_GLFWHandle.window(), GLFW_CURSOR, GLFW_CURSOR_DISABLED);
 
     printGLVersion();
 }
@@ -63,7 +63,8 @@ int ToyOpenGLApp::run()
     std::vector<std::pair<std::string, int>> textureNameId = createTextures();
     float mixValue = .5;
     float zTranslate = -3.0f;
-
+    std::unique_ptr<CameraController> cameraController =
+        std::make_unique<TrackballCameraController>(m_GLFWHandle.window());
     while (!m_GLFWHandle.shouldClose())
     {
 
@@ -71,11 +72,11 @@ int ToyOpenGLApp::run()
         deltaTime = currentFrame - lastFrame;
         lastFrame = currentFrame;
 
-        processInput();
+        cameraController->update(deltaTime);
 
         glm::mat4 model(1.f), view(1.0f), projection(1.0f);
         projection = glm::perspective(glm::radians(camera.Zoom), 1280.f / 720.f, 0.0001f, 100.0f);
-        view = camera.GetViewMatrix();
+        view = cameraController->getCamera().getViewMatrix();
         // render
         glClearColor(0.5f, 0.5f, 0.5f, 0.f);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
@@ -113,6 +114,26 @@ int ToyOpenGLApp::run()
         ImGui::SliderFloat("MixValue", &mixValue, 0.0f, 1.0f);
         ImGui::SliderFloat("zTranslate", &zTranslate, -10.0f, 10.0f);
 
+        static int cameraControllerType = 0;
+        const auto cameraControllerTypeChanged =
+            ImGui::RadioButton("Trackball", &cameraControllerType, 0) ||
+            ImGui::RadioButton("First Person", &cameraControllerType, 1);
+        if (cameraControllerTypeChanged)
+        {
+            const auto currentCamera = cameraController->getCamera();
+            if (cameraControllerType == 0)
+            {
+                cameraController = std::make_unique<TrackballCameraController>(
+                    m_GLFWHandle.window());
+            }
+            else if (cameraControllerType == 1)
+            {
+                cameraController = std::make_unique<FirstPersonCameraController>(
+                    m_GLFWHandle.window());
+            }
+
+            cameraController->setCamera(currentCamera);
+        }
         ImGui::End();
 
         imguiRenderFrame();
